@@ -51,7 +51,7 @@ answer = totalArea $ maxArea allClubCombinationsWithLessThan150Members
 
 --------------------------------------------------------------
 
-dynamicAnswerEmpty :: Array (Area, Members) (Maybe Area)
+dynamicAnswerEmpty :: Array (ClubIndex, MemberIndex) (Maybe Area)
 dynamicAnswerEmpty = listArray ((0, 0), (length clubs, totalAllowedMembers)) $ repeat Nothing
 
 type ClubIndex = Int
@@ -66,7 +66,15 @@ type MemberIndex = Int
 --     positionsToUpdate :: [MemberIndex]
 --     positionsToUpdate = undefined
 
--- updateForClub :: 
+updateForClub
+    :: ClubIndex
+    -> (Area, Members)
+    -> Array (Area, Members) (Maybe Area)
+    -> Array (Area, Members) (Maybe Area)
+updateForClub clubIndex (area, members) arr =
+    let previousRowNonNothing = allNonNothingFromRow (clubIndex - 1) arr
+    in updateClubMember 
+
 
 allFromRow
     :: Ix a => a -> Array (a, Members) (Maybe b) -> [(a, Maybe b)]
