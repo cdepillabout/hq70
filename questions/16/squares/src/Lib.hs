@@ -4,86 +4,58 @@ module Lib where
 
 import Prelude
 
-import Data.Array ( Array, Ix, (!), listArray )
-import Data.Foldable ( maximumBy )
-import Data.Function ( on )
-import Data.List ( subsequences )
-import Data.Monoid ( Sum(..) )
+import Control.Monad ( guard )
+import Data.Foldable ( toList )
+import Data.List ( nub, nubBy )
+import Data.Sequence ( Seq, index, replicateM )
 
+type StringLength = Int
+type SideLength = Int
 type Area = Int
-type Members = Int
 
-totalAllowedMembers :: Members
-totalAllowedMembers = 150
+allAnswers :: [(Int, Float, Float)]
+allAnswers = do
+    squareSideLength <- [1 .. 125]
+    let edges = [1 .. squareSideLength - 1]
+        otherSquareAreas =
+            rectangleAreaFromSquareSideLength squareSideLength <$> edges
+        allTwoRectangles = unsafeSeqToTuple <$> replicateM 2 otherSquareAreas
+    (rect1, rect2) <- allTwoRectangles
+    guard (rect1 + rect2 == squareSideLength * squareSideLength)
+    pure
+        ( 1
+        , fromIntegral rect2 / fromIntegral rect1
+        , fromIntegral squareSideLength * fromIntegral squareSideLength / fromIntegral rect1
+        )
 
-clubs :: [(Area, Members)]
-clubs =
-    [ (11000, 40)
-    , (8000, 30)
-    , (400, 24)
-    , (800, 20)
-    , (900, 14)
-    , (1800, 16)
-    , (1000, 15)
-    , (7000, 40)
-    , (100, 10)
-    , (300, 12)
-    ]
+-- uniqueAnswers = nubBy uniqueCheck allAnswers
+-- uniqueAnswers = nubBy uniqueCheck2 allAnswers
+uniqueAnswers :: [(Int, Float, Float)]
+uniqueAnswers = nub allAnswers
 
-allClubCombinations :: [[(Area, Members)]]
-allClubCombinations = subsequences clubs
+run :: IO ()
+run = print $ length uniqueAnswers
 
-allClubCombinationsWithLessThan150Members :: [[(Area, Members)]]
-allClubCombinationsWithLessThan150Members =
-    filter ((<= totalAllowedMembers) . totalMembers) allClubCombinations
+uniqueCheck :: (Eq a, Eq b) => (a, b, b) -> (a, b, b) -> Bool
+uniqueCheck (x, a1, b1) (y, b2, a2) =
+    (x == y) &&
+        (
+            ( (a1 == a2) && (b1 == b2) )
+        ||
+            ( (a1 == b2) && (b1 == a2) )
+        )
 
-totalArea :: [(Area, Members)] -> Area
-totalArea = getSum . foldMap (Sum . fst)
+uniqueCheck2 :: Eq a => (a, a, a) -> (a, a, a) -> Bool
+uniqueCheck2 (a, b, c) (x, y, z) =
+        ((a == x) || (a == y) || (a == z))
+    &&
+        ((b == x) || (b == y) || (b == z))
+    &&
+        ((c == x) || (c == y) || (c == z))
 
-totalMembers :: [(Area, Members)] -> Members
-totalMembers = getSum . foldMap (Sum . snd)
+unsafeSeqToTuple :: Seq a -> (a, a)
+unsafeSeqToTuple seq = (index seq 0, index seq 1)
 
-maxArea :: [[(Area, Members)]] -> [(Area, Members)]
-maxArea = maximumBy (compare `on` totalArea)
-
-answer :: Area
-answer = totalArea $ maxArea allClubCombinationsWithLessThan150Members
-
---------------------------------------------------------------
-
-dynamicAnswerEmpty :: Array (ClubIndex, MemberIndex) (Maybe Area)
-dynamicAnswerEmpty = listArray ((0, 0), (length clubs, totalAllowedMembers)) $ repeat Nothing
-
-type ClubIndex = Int
-type MemberIndex = Int
-
--- updateForClub :: ClubIndex -> (Area, Members) -> Array (Area, Members) (Maybe Area) -> Array (Array, Members) (Maybe Area)
--- updateForClub clubIndex (area, members) = go 0 
---   where
---     go :: MemberIndex -> Array (Area, Members) (Maybe Area) -> Array (Array, Members) (Maybe Area)
---     go memberIndex arr = undefined
-
---     positionsToUpdate :: [MemberIndex]
---     positionsToUpdate = undefined
-
-updateForClub
-    :: ClubIndex
-    -> (Area, Members)
-    -> Array (Area, Members) (Maybe Area)
-    -> Array (Area, Members) (Maybe Area)
-updateForClub clubIndex (area, members) arr =
-    let previousRowNonNothing = allNonNothingFromRow (clubIndex - 1) arr
-    in updateClubMember 
-
-
-allFromRow
-    :: Ix a => a -> Array (a, Members) (Maybe b) -> [(a, Maybe b)]
-allFromRow a arr = fmap (\member -> (a, arr ! (a,member))) [0..totalAllowedMembers]
-
-allNonNothingFromRow
-    :: forall a b . Ix a => a -> Array (a, Members) (Maybe b) -> [(a, b)]
-allNonNothingFromRow a arr = foldr f [] $ allFromRow a arr
-  where
-    f :: (a, Maybe b) -> [(a, b)] -> [(a, b)]
-    f (_, Nothing) accum = accum
-    f (a, Just b) accum = (a,b) : accum
+rectangleAreaFromSquareSideLength :: SideLength -> SideLength -> Area
+rectangleAreaFromSquareSideLength squareSideLength rectangleSideLength =
+    rectangleSideLength * (2 * squareSideLength - rectangleSideLength)
