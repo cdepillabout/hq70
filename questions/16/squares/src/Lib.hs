@@ -19,7 +19,8 @@ allAnswers = do
     let edges = [1 .. squareSideLength - 1]
         otherSquareAreas =
             rectangleAreaFromSquareSideLength squareSideLength <$> edges
-        allTwoRectangles = unsafeSeqToTuple <$> replicateM 2 otherSquareAreas
+        repped = replicateM 2 otherSquareAreas
+        allTwoRectangles = unsafeSeqToTuple <$> repped
     (rect1, rect2) <- allTwoRectangles
     guard (rect1 + rect2 == squareSideLength * squareSideLength)
     pure
