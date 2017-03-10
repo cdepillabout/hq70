@@ -1,13 +1,13 @@
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Lib where
 
 import Prelude
 
-import Control.Monad ( guard )
+import Control.Monad ( guard, replicateM )
 import Data.Foldable ( toList )
 import Data.List ( nub, nubBy )
-import Data.Sequence ( Seq, index, replicateM )
 
 type StringLength = Int
 type SideLength = Int
@@ -19,15 +19,21 @@ allAnswers = do
     let edges = [1 .. squareSideLength - 1]
         otherSquareAreas =
             rectangleAreaFromSquareSideLength squareSideLength <$> edges
-        repped = replicateM 2 otherSquareAreas
-        allTwoRectangles = unsafeSeqToTuple <$> repped
+        (repped :: [[Area]]) = replicateM 2 otherSquareAreas
+        (allTwoRectangles :: [(Area, Area)]) = fmap foo repped
     (rect1, rect2) <- allTwoRectangles
-    guard (rect1 + rect2 == squareSideLength * squareSideLength)
+    guard $ rect2 > rect1
+    guard $ rect1 + rect2 == squareSideLength * squareSideLength
     pure
         ( 1
         , fromIntegral rect2 / fromIntegral rect1
         , fromIntegral squareSideLength * fromIntegral squareSideLength / fromIntegral rect1
         )
+
+
+foo :: [Area] -> (Area, Area)
+foo [a,b] = (a, b)
+foo _ = error "!!!"
 
 -- uniqueAnswers = nubBy uniqueCheck allAnswers
 -- uniqueAnswers = nubBy uniqueCheck2 allAnswers
@@ -53,9 +59,6 @@ uniqueCheck2 (a, b, c) (x, y, z) =
         ((b == x) || (b == y) || (b == z))
     &&
         ((c == x) || (c == y) || (c == z))
-
-unsafeSeqToTuple :: Seq a -> (a, a)
-unsafeSeqToTuple seq = (index seq 0, index seq 1)
 
 rectangleAreaFromSquareSideLength :: SideLength -> SideLength -> Area
 rectangleAreaFromSquareSideLength squareSideLength rectangleSideLength =
